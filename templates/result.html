@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% set active = 'predict' %}
+{% block title %}Result · Airline Satisfaction{% endblock %}
+
+{% block content %}
+<main class="container narrow">
+  <div id="empty" class="card empty" style="display:none">
+    <h2>No prediction yet</h2>
+    <p>Fill in the passenger form first.</p>
+    <p style="margin-top:18px"><a class="btn" href="{{ url_for('predict_page') }}">Go to the form</a></p>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="result-hero" id="hero">
+      <span class="tag" id="tag"></span>
+      <h1 id="label"></h1>
+      <p class="sub">Predicted probability that this passenger is satisfied</p>
+      <div class="big-pct" id="pct"></div>
+      <div class="meter" aria-hidden="true"><div class="fill" id="fill"></div></div>
+      <div class="meter-labels"><span>0% · Neutral / Dissatisfied</span><span>100% · Satisfied</span></div>
+    </div>
+
+    <div class="note" id="warnBox" style="display:none; margin-top:18px"></div>
+
+    <div class="two-col">
+      <section class="card" id="whyCard" style="display:none">
+        <h3>Why this prediction?</h3>
+        <p style="margin-bottom:12px">Top factors for this passenger. Each value shows how far that answer moved the predicted probability away from the average passenger (SHAP values).</p>
+        <div class="legend">
+          <span><i style="background:var(--good)"></i>pushes toward Satisfied</span>
+          <span><i style="background:var(--bad)"></i>pushes toward Neutral/Dissatisfied</span>
+        </div>
+        <ul class="contrib" id="contrib"></ul>
+      </section>
+
+      <section class="card">
+        <h3>Submitted details</h3>
+        <table class="inputs" id="inputsTable"></table>
+      </section>
+    </div>
+
+    <div class="actions" style="margin-top:24px">
+      <a class="btn" href="{{ url_for('predict_page') }}">Predict another passenger</a>
+      <a class="btn secondary" href="{{ url_for('home') }}">Home</a>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const raw = sessionStorage.getItem("airlineResult");
+  if (!raw) {
+    document.getElementById("empty").style.display = "block";
+  } else {
+    const { inputs, result } = JSON.parse(raw);
+    const good = result.prediction === 1;
+    const p = result.probability_satisfied;
+
+    document.getElementById("content").style.display = "block";
+    document.getElementById("hero").classList.add(good ? "good" : "bad");
+    document.getElementById("tag").textContent = good ? "Satisfied" : "Needs attention";
+    document.getElementById("label").textContent = result.label;
+    document.getElementById("pct").textContent = (p * 100).toFixed(1) + "%";
+    requestAnimationFrame(() => { document.getElementById("fill").style.width = (p * 100) + "%"; });
+
+    // Warnings (e.g. inputs outside the training range)
+    if (Array.isArray(result.warnings) && result.warnings.length) {
+      const box = document.getElementById("warnBox");
+      const strong = document.createElement("strong"); strong.textContent = "Please note: ";
+      box.append(strong);
+      result.warnings.forEach((w, i) => { box.append((i ? " " : "") + w); });
+      box.style.display = "block";
+    }
+
+    // SHAP contributions
+    if (Array.isArray(result.contributions) && result.contributions.length) {
+      document.getElementById("whyCard").style.display = "block";
+      const maxAbs = Math.max(...result.contributions.map(c => Math.abs(c.shap)), 1e-9);
+      const ul = document.getElementById("contrib");
+      for (const c of result.contributions) {
+        const li = document.createElement("li");
+        const w = Math.max(4, Math.abs(c.shap) / maxAbs * 100);
+        const sign = c.shap > 0 ? "+" : "";
+        li.innerHTML =
+          `<div class="row"><span class="feat"></span><span class="val"></span></div>
+           <div class="bar-track"><div class="bar ${c.shap > 0 ? "pos" : "neg"}" style="width:${w}%"></div></div>`;
+        li.querySelector(".feat").textContent = c.feature + (c.value === null || c.value === undefined ? "" : " = " + c.value);
+        li.querySelector(".val").textContent = sign + c.shap.toFixed(3);
+        ul.appendChild(li);
+      }
+    }
+
+    // Submitted inputs
+    const table = document.getElementById("inputsTable");
+    for (const [k, v] of Object.entries(inputs)) {
+      const tr = document.createElement("tr");
+      const a = document.createElement("td"), b = document.createElement("td");
+      a.textContent = k;
+      b.textContent = v === null ? "not provided" : v;
+      tr.append(a, b);
+      table.appendChild(tr);
+    }
+  }
+</script>
+{% endblock %}

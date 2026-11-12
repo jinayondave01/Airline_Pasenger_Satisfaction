@@ -1,0 +1,127 @@
+{
+  "categorical_options": {
+    "Gender": [
+      "Female",
+      "Male"
+    ],
+    "Customer Type": [
+      "First-time",
+      "Returning"
+    ],
+    "Type of Travel": [
+      "Business",
+      "Personal"
+    ],
+    "Class": [
+      "Business",
+      "Economy",
+      "Economy Plus"
+    ]
+  },
+  "numeric_ranges": {
+    "Age": [
+      7.0,
+      85.0
+    ],
+    "Flight Distance": [
+      31.0,
+      4983.0
+    ],
+    "Departure Delay": [
+      0.0,
+      1592.0
+    ],
+    "Arrival Delay": [
+      0.0,
+      1584.0
+    ],
+    "Departure and Arrival Time Convenience": [
+      0.0,
+      5.0
+    ],
+    "Ease of Online Booking": [
+      0.0,
+      5.0
+    ],
+    "Check-in Service": [
+      0.0,
+      5.0
+    ],
+    "Online Boarding": [
+      0.0,
+      5.0
+    ],
+    "Gate Location": [
+      0.0,
+      5.0
+    ],
+    "On-board Service": [
+      0.0,
+      5.0
+    ],
+    "Seat Comfort": [
+      0.0,
+      5.0
+    ],
+    "Leg Room Service": [
+      0.0,
+      5.0
+    ],
+    "Cleanliness": [
+      0.0,
+      5.0
+    ],
+    "Food and Drink": [
+      0.0,
+      5.0
+    ],
+    "In-flight Service": [
+      0.0,
+      5.0
+    ],
+    "In-flight Wifi Service": [
+      0.0,
+      5.0
+    ],
+    "In-flight Entertainment": [
+      0.0,
+      5.0
+    ],
+    "Baggage Handling": [
+      1.0,
+      5.0
+    ]
+  },
+  "rating_columns": [
+    "Departure and Arrival Time Convenience",
+    "Ease of Online Booking",
+    "Check-in Service",
+    "Online Boarding",
+    "Gate Location",
+    "On-board Service",
+    "Seat Comfort",
+    "Leg Room Service",
+    "Cleanliness",
+    "Food and Drink",
+    "In-flight Service",
+    "In-flight Wifi Service",
+    "In-flight Entertainment",
+    "Baggage Handling"
+  ],
+  "target_mapping": {
+    "0": "Neutral or Dissatisfied",
+    "1": "Satisfied"
+  },
+  "metrics": {
+    "test_accuracy": 0.9633,
+    "cv_accuracy_mean": 0.9625,
+    "roc_auc": 0.9942
+  },
+  "versions": {
+    "python": "3.13.18",
+    "scikit_learn": "1.9.1",
+    "pandas": "2.2.3",
+    "numpy": "2.1.3",
+    "shap": "0.54.1"
+  }
+}

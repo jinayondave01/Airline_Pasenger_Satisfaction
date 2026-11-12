@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% set active = 'predict' %}
+{% block title %}Predict · Airline Satisfaction{% endblock %}
+
+{% block content %}
+<main class="container narrow">
+  <div class="page-head">
+    <h1>Passenger details</h1>
+    <p>Fill in every field, then press <em>Predict</em>.</p>
+  </div>
+
+  <div class="error-box" id="errorBox" role="alert"></div>
+
+  <form id="predictForm" novalidate>
+    <fieldset>
+      <legend>Passenger profile</legend>
+      <div class="fields">
+        {% for col in ['Gender', 'Customer Type'] %}
+        <div class="field">
+          <label for="f_{{ loop.index }}">{{ col }}</label>
+          <select name="{{ col }}" id="f_{{ loop.index }}" required>
+            <option value="" disabled selected>Select…</option>
+            {% for opt in categorical[col] %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+        <div class="field">
+          <label for="Age">Age</label>
+          <input type="number" name="Age" id="Age" min="0" max="120" step="1" placeholder="e.g. 35" required>
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Flight information</legend>
+      <div class="fields">
+        {% for col in ['Type of Travel', 'Class'] %}
+        <div class="field">
+          <label for="g_{{ loop.index }}">{{ col }}</label>
+          <select name="{{ col }}" id="g_{{ loop.index }}" required>
+            <option value="" disabled selected>Select…</option>
+            {% for opt in categorical[col] %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+        <div class="field">
+          <label for="Flight_Distance">Flight distance <span class="hint">(miles)</span></label>
+          <input type="number" name="Flight Distance" id="Flight_Distance" min="1" max="20000" step="1" placeholder="e.g. 1200" required>
+        </div>
+        <div class="field">
+          <label for="Departure_Delay">Departure delay <span class="hint">(minutes)</span></label>
+          <input type="number" name="Departure Delay" id="Departure_Delay" min="0" max="3000" step="1" value="0" required>
+        </div>
+        <div class="field">
+          <label for="Arrival_Delay">Arrival delay <span class="hint">(minutes, optional)</span></label>
+          <input type="number" name="Arrival Delay" id="Arrival_Delay" min="0" max="3000" step="1" value="0">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Service ratings</legend>
+      <p class="rating-help">1 = very poor … 5 = excellent. Choose <strong>0</strong> if the service was not applicable. A 0 option appears only for ratings where it is common enough in the training data to be meaningful.</p>
+      <div class="fields">
+        {% for col in ratings %}
+        <div class="field">
+          <label for="r_{{ loop.index }}">{{ col }}</label>
+          <select name="{{ col }}" id="r_{{ loop.index }}" required>
+            <option value="" disabled selected>Select…</option>
+            {% for v in range(rating_min.get(col, 0), 6) %}<option value="{{ v }}">{{ v }}{{ ' – not applicable' if v == 0 }}</option>{% endfor %}
+          </select>
+        </div>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button class="btn" type="submit" id="submitBtn">Predict satisfaction</button>
+      <button class="btn secondary" type="button" id="sampleBtn">Fill sample passenger</button>
+      <button class="btn secondary" type="reset">Clear</button>
+    </div>
+  </form>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const NUMERIC = ["Age", "Flight Distance", "Departure Delay", "Arrival Delay"];
+  const OPTIONAL = ["Arrival Delay"];
+  const RATINGS = {{ ratings | tojson }};
+
+  const SAMPLE = {
+    "Gender": "Female", "Age": 35, "Customer Type": "Returning", "Type of Travel": "Business",
+    "Class": "Business", "Flight Distance": 1200, "Departure Delay": 0, "Arrival Delay": 0,
+    "Departure and Arrival Time Convenience": 4, "Ease of Online Booking": 4, "Check-in Service": 4,
+    "Online Boarding": 5, "Gate Location": 3, "On-board Service": 4, "Seat Comfort": 5,
+    "Leg Room Service": 4, "Cleanliness": 4, "Food and Drink": 4, "In-flight Service": 4,
+    "In-flight Wifi Service": 4, "In-flight Entertainment": 5, "Baggage Handling": 4
+  };
+
+  const form = document.getElementById("predictForm");
+  const errorBox = document.getElementById("errorBox");
+  const submitBtn = document.getElementById("submitBtn");
+
+  function field(name) { return form.elements[name]; }
+
+  document.getElementById("sampleBtn").addEventListener("click", () => {
+    for (const [k, v] of Object.entries(SAMPLE)) { if (field(k)) field(k).value = v; }
+    clearErrors();
+  });
+
+  function clearErrors() {
+    errorBox.style.display = "none";
+    errorBox.innerHTML = "";
+    form.querySelectorAll(".field.invalid").forEach(el => el.classList.remove("invalid"));
+  }
+
+  const esc = (t) => String(t).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+
+  function showErrors(messages, names = []) {
+    errorBox.innerHTML = "<strong>Please fix the following:</strong><ul>" +
+      messages.map(m => `<li>${esc(m)}</li>`).join("") + "</ul>";
+    errorBox.style.display = "block";
+    names.forEach(n => field(n) && field(n).closest(".field").classList.add("invalid"));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function collect() {
+    const data = {};
+    const bad = [], badNames = [];
+    for (const el of form.elements) {
+      if (!el.name) continue;
+      const raw = el.value.trim();
+      if (raw === "") {
+        if (OPTIONAL.includes(el.name)) { data[el.name] = null; continue; }
+        bad.push(`${el.name} is required.`); badNames.push(el.name); continue;
+      }
+      if (NUMERIC.includes(el.name) || RATINGS.includes(el.name)) {
+        const n = Number(raw);
+        if (!Number.isFinite(n)) { bad.push(`${el.name} must be a number.`); badNames.push(el.name); continue; }
+        if (el.min !== "" && n < Number(el.min)) { bad.push(`${el.name} must be at least ${el.min}.`); badNames.push(el.name); continue; }
+        if (el.max !== "" && n > Number(el.max)) { bad.push(`${el.name} must be at most ${el.max}.`); badNames.push(el.name); continue; }
+        data[el.name] = n;
+      } else {
+        data[el.name] = raw;
+      }
+    }
+    return { data, bad, badNames };
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErrors();
+    const { data, bad, badNames } = collect();
+    if (bad.length) { showErrors(bad, badNames); return; }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Predicting…";
+    try {
+      const res = await fetch("/api/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+      });
+      let out = await res.json();
+      if (res.status === 501) {            
+        const r2 = await fetch("/api/predict", {
+          method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data)
+        });
+        out = await r2.json();
+        if (!r2.ok) throw out;
+      } else if (!res.ok) {
+        throw out;
+      }
+      sessionStorage.setItem("airlineResult", JSON.stringify({ inputs: data, result: out }));
+      window.location.href = "{{ url_for('result_page') }}";
+    } catch (err) {
+      const details = err && err.details;
+      const msgs = Array.isArray(details) ? details : [details || (err && err.error) || "Could not reach the server."];
+      showErrors(msgs);
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Predict satisfaction";
+    }
+  });
+</script>
+{% endblock %}

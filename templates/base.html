@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Airline Satisfaction Predictor{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="navbar">
+    <div class="inner">
+      <a class="brand" href="{{ url_for('home') }}">✈ Airline <span>Satisfaction</span></a>
+      <nav class="nav-links">
+        <a href="{{ url_for('home') }}" class="{{ 'active' if active == 'home' }}">Home</a>
+        <a href="{{ url_for('predict_page') }}" class="{{ 'active' if active == 'predict' }}">Predict</a>
+      </nav>
+    </div>
+  </header>
+
+  {% block content %}{% endblock %}
+
+  <div class="footer">Random Forest classifier · Flask · for demonstration purposes</div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% set active = 'home' %}
+
+{% block content %}
+<section class="hero">
+  <h1>Will this passenger be satisfied?</h1>
+  <p>Enter a passenger's trip details and service ratings. A Random Forest model built from a
+     dataset of 129,880 airline passengers (80% for training, 20% held out for testing) predicts whether they will be <strong>Satisfied</strong> or
+     <strong>Neutral / Dissatisfied</strong>, and shows what drove the prediction.</p>
+  <a class="btn" href="{{ url_for('predict_page') }}">Start a prediction →</a>
+</section>
+
+<main class="container">
+  <div class="stats">
+    <div class="stat"><div class="num">{{ metrics.test_accuracy_pct }}</div><div class="lbl">Test accuracy</div></div>
+    <div class="stat"><div class="num">{{ metrics.cv_accuracy_pct }}</div><div class="lbl">5-fold CV accuracy</div></div>
+    <div class="stat"><div class="num">{{ metrics.roc_auc }}</div><div class="lbl">ROC-AUC</div></div>
+    <div class="stat"><div class="num">22</div><div class="lbl">Input features</div></div>
+  </div>
+
+  <h2 class="section-title">How it works</h2>
+  <div class="grid-3">
+    <div class="card"><div class="step-no">1</div><h3>Enter details</h3>
+      <p>Passenger profile, flight information and 14 service ratings on a 0–5 scale.</p></div>
+    <div class="card"><div class="step-no">2</div><h3>Get a prediction</h3>
+      <p>The model returns a label and the probability that the passenger is satisfied.</p></div>
+    <div class="card"><div class="step-no">3</div><h3>See why</h3>
+      <p>SHAP values show which inputs pushed the prediction toward or away from "Satisfied".</p></div>
+  </div>
+
+  <div class="note">
+    <strong>Please note:</strong> satisfaction is measured in a post-flight survey and several inputs are
+    themselves satisfaction ratings, so this tool classifies overall satisfaction from component
+    ratings — it does not forecast satisfaction before a flight. Feature contributions describe the
+    model's behaviour, not causes.
+  </div>
+</main>
+{% endblock %}
